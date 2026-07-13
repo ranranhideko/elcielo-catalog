@@ -126,17 +126,20 @@ const STATUS = {
   "SOLD":     { cls: "badge-sold",      label: "売切れ" },
 };
 
-async function loadData() {
-  try {
-    const res = await fetch(GAS_URL + "?action=getInventory");
-    const data = await res.json();
+function loadData() {
+  window._gasCallback = function(data) {
     allItems = (data || []).filter(i => i.visible !== false);
+    document.getElementById("loading").style.display = "none";
     render();
-  } catch(e) {
+  };
+  const script = document.createElement("script");
+  script.src = GAS_URL + "?action=getInventory&callback=_gasCallback";
+  script.onerror = function() {
     document.getElementById("errorMsg").style.display = "block";
     document.getElementById("errorMsg").textContent = "データを読み込めませんでした。しばらくしてから再読み込みしてください。";
     document.getElementById("loading").style.display = "none";
-  }
+  };
+  document.head.appendChild(script);
 }
 
 function render() {
