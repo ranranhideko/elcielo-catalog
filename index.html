@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EL CIELO 在庫レオタード一覧</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #faf8f5; color: #2a2a2a; }
+    #header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); padding: 28px 24px 22px; text-align: center; }
+    #logo { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: 5px; font-family: Georgia, serif; margin-bottom: 4px; }
+    #tagline { color: #a8b2d8; font-size: 12px; letter-spacing: 2px; }
+    #notice { background: #fff; border-bottom: 1px solid #ede9e3; padding: 12px 20px; font-size: 12px; color: #888; text-align: center; line-height: 1.8; }
+    #filterBar { display: flex; gap: 8px; padding: 14px 20px; background: #faf8f5; border-bottom: 1px solid #ede9e3; align-items: center; flex-wrap: wrap; }
+    .fBtn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid #d0ccc5; background: #fff; color: #666; font-size: 13px; cursor: pointer; font-weight: 400; }
+    .fBtn.active { border-color: #4a4a8a; background: #4a4a8a; color: #fff; font-weight: 600; }
+    #count { margin-left: auto; font-size: 12px; color: #aaa; }
+    #searchWrap { width: 100%; margin-top: 8px; position: relative; }
+    #searchInput { width: 100%; padding: 8px 36px 8px 14px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 13px; outline: none; background: #fff; }
+    #clearSearch { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 16px; color: #aaa; cursor: pointer; display: none; }
+    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; padding: 16px 20px; }
+    .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.07); cursor: pointer; }
+    .card.sold { opacity: 0.6; cursor: default; }
+    .photoBox { height: 150px; background: #f0eee8; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .photoBox img { width: 100%; height: 100%; object-fit: cover; }
+    .soldOverlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
+    .soldLabel { background: #fff; color: #888; border-radius: 20px; padding: 4px 14px; font-weight: 700; font-size: 13px; }
+    .noPhoto { color: #ddd; font-size: 36px; }
+    .cardBody { padding: 10px 12px 14px; }
+    .cardId { font-size: 11px; color: #fff; letter-spacing: 1px; margin-bottom: 5px; background: #4a4a8a; display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+    .cardName { font-size: 13px; font-weight: 600; line-height: 1.35; margin-bottom: 7px; color: #1a1a2e; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+    .badge-available { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .badge-hold { background: #fff8e1; color: #e65100; border: 1px solid #ffe082; }
+    .badge-sold { background: #f3f3f3; color: #999; border: 1px solid #ddd; }
+    .cardMeta { font-size: 11px; color: #999; margin-top: 5px; }
+    .cardPrice { font-size: 15px; font-weight: 800; color: #4a4a8a; margin-top: 6px; }
+    .cardPriceAsk { font-size: 12px; color: #bbb; margin-top: 6px; }
+    #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 99; align-items: center; justify-content: center; padding: 20px; }
+    #overlay.show { display: flex; }
+    #modal { background: #fff; border-radius: 20px; width: min(92vw, 420px); max-height: 85vh; overflow-y: auto; box-shadow: 0 12px 48px rgba(0,0,0,0.2); }
+    #modalImg { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 20px 20px 0 0; }
+    #modalImgPlaceholder { height: 200px; background: #f0eee8; border-radius: 20px 20px 0 0; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #ccc; }
+    #subPhotos { display: flex; gap: 6px; padding: 8px 16px 0; }
+    #subPhotos img { flex: 1; height: 72px; object-fit: cover; border-radius: 10px; }
+    #modalBody { padding: 20px 22px 28px; }
+    #modalId { font-size: 12px; color: #fff; margin-bottom: 10px; letter-spacing: 1px; background: #4a4a8a; display: inline-block; padding: 3px 10px; border-radius: 6px; font-weight: 700; }
+    #modalTitle { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+    .infoRow { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f5f2ee; }
+    .infoLabel { font-size: 12px; color: #aaa; font-weight: 500; }
+    .infoVal { font-size: 13px; font-weight: 600; color: #2a2a2a; }
+    #modalNotes { margin-top: 12px; padding: 10px 12px; background: #faf9f7; border-radius: 8px; font-size: 13px; color: #555; line-height: 1.6; }
+    #modalNoteLabel { font-size: 11px; color: #bbb; margin-bottom: 4px; font-weight: 600; }
+    .modalBtn { width: 100%; margin-top: 10px; padding: 11px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; color: #fff; }
+    #inquiryBtn { background: linear-gradient(135deg, #4a4a8a, #7b5ea7); }
+    #instagramBtn { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
+    #shopBtn { background: linear-gradient(135deg, #2c3e50, #4a4a8a); }
+    #closeBtn { background: #1a1a2e; margin-top: 20px; }
+    #empty { text-align: center; padding: 80px 20px; color: #ccc; grid-column: 1/-1; }
+    #loading { text-align: center; padding: 80px 20px; color: #4a4a8a; }
+    #errorMsg { padding: 12px 20px; background: #fff3f3; color: #c0392b; font-size: 13px; text-align: center; display: none; }
+    footer { text-align: center; padding: 32px 20px; color: #ccc; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <div id="logo">EL CIELO</div>
+  <div id="tagline">在庫レオタード一覧</div>
+</div>
+
+<div id="notice">
+  ご購入・お問い合わせはInstagram / LINEよりどうぞ ✦ 取置はお早めに<br>
+  お問い合わせの際は <strong>商品番号（例：ELC-001）</strong> をお知らせください
+</div>
+
+<div id="errorMsg"></div>
+
+<div id="filterBar">
+  <button class="fBtn active" onclick="setFilter('全て')">全て</button>
+  <button class="fBtn" onclick="setFilter('在庫あり')">在庫あり</button>
+  <button class="fBtn" onclick="setFilter('取置中')">取置中</button>
+  <button class="fBtn" onclick="setFilter('SOLD')">売切れ</button>
+  <span id="count"></span>
+  <div id="searchWrap">
+    <input id="searchInput" type="text" placeholder="🔍 商品名・カラー・サイズ・番号で検索..." oninput="onSearch(this.value)">
+    <button id="clearSearch" onclick="clearSearch()">×</button>
+  </div>
+</div>
+
+<div id="grid"><div id="loading">読み込み中...</div></div>
+
+<footer>EL CIELO © 2026 ✦ shopelcielo.theshop.jp</footer>
+
+<div id="overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <div id="modalImgPlaceholder">✦</div>
+    <img id="modalImg" style="display:none">
+    <div id="subPhotos"></div>
+    <div id="modalBody">
+      <div id="modalId"></div>
+      <div id="modalTitle"></div>
+      <div id="modalInfoRows"></div>
+      <div id="modalNotes" style="display:none">
+        <div id="modalNoteLabel">備考</div>
+        <div id="modalNoteText"></div>
+      </div>
+      <button class="modalBtn" id="inquiryBtn" onclick="window.open('https://www.instagram.com/el_cielo_leotard/','_blank')">📩 お問い合わせ（Instagram）</button>
+      <button class="modalBtn" id="instagramBtn" style="display:none"></button>
+      <button class="modalBtn" id="shopBtn" style="display:none"></button>
+      <button class="modalBtn" id="closeBtn" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbys6O96xbDHOhlq4pJtEW3rxs80dGNo0tB07MxbhMqeOaqZ-SA07mJAnFGxXc5pnaQO/exec";
+
+let allItems = [];
+let currentFilter = "全て";
+let currentSearch = "";
+
+const STATUS = {
+  "在庫あり": { cls: "badge-available", label: "在庫あり" },
+  "取置中":   { cls: "badge-hold",      label: "取置中" },
+  "SOLD":     { cls: "badge-sold",      label: "売切れ" },
+};
+
+async function loadData() {
+  try {
+    const res = await fetch(GAS_URL + "?action=getInventory");
+    const data = await res.json();
+    allItems = (data || []).filter(i => i.visible !== false);
+    render();
+  } catch(e) {
+    document.getElementById("errorMsg").style.display = "block";
+    document.getElementById("errorMsg").textContent = "データを読み込めませんでした。しばらくしてから再読み込みしてください。";
+    document.getElementById("loading").style.display = "none";
+  }
+}
+
+function render() {
+  const filtered = allItems.filter(i => {
+    const matchStatus = currentFilter === "全て" || i.status === currentFilter;
+    const q = currentSearch.trim().toLowerCase();
+    const matchSearch = !q || [i.id, i.name, i.color, i.size].some(v => v && v.toLowerCase().includes(q));
+    return matchStatus && matchSearch;
+  });
+
+  const available = allItems.filter(i => i.status === "在庫あり").length;
+  document.getElementById("count").textContent = `在庫あり ${available}点 / 全${allItems.length}点`;
+
+  const grid = document.getElementById("grid");
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div id="empty"><div style="font-size:36px;margin-bottom:12px">✦</div>該当する商品がありません</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const sold = item.status === "SOLD";
+    const st = STATUS[item.status] || STATUS["在庫あり"];
+    const photo = item.photos && item.photos[0] ? `<img src="${item.photos[0]}" alt="">` : '<div class="noPhoto">✦</div>';
+    const soldOverlay = sold ? '<div class="soldOverlay"><span class="soldLabel">売切れ</span></div>' : '';
+    const price = item.price ? `<div class="cardPrice">¥${Number(item.price).toLocaleString()}</div>` : '<div class="cardPriceAsk">価格はお問い合わせください</div>';
+    const meta = [item.size && `サイズ: ${item.size}`, item.lining && `裏地: ${item.lining}`].filter(Boolean).join(' ／ ');
+    return `
+      <div class="card${sold ? ' sold' : ''}" onclick="${sold ? '' : `openModal('${item.id}')`}">
+        <div class="photoBox">${photo}${soldOverlay}</div>
+        <div class="cardBody">
+          <div class="cardId">${item.id}</div>
+          <div class="cardName">${item.name}</div>
+          <span class="badge ${st.cls}">${st.label}</span>
+          <div class="cardMeta">${meta}</div>
+          ${price}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.fBtn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+function onSearch(val) {
+  currentSearch = val;
+  document.getElementById("clearSearch").style.display = val ? "block" : "none";
+  render();
+}
+
+function clearSearch() {
+  currentSearch = "";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("clearSearch").style.display = "none";
+  render();
+}
+
+function openModal(id) {
+  const item = allItems.find(i => i.id === id);
+  if (!item) return;
+
+  const st = STATUS[item.status] || STATUS["在庫あり"];
+
+  // 写真
+  if (item.photos && item.photos[0]) {
+    document.getElementById("modalImg").src = item.photos[0];
+    document.getElementById("modalImg").style.display = "block";
+    document.getElementById("modalImgPlaceholder").style.display = "none";
+    const sub = document.getElementById("subPhotos");
+    sub.innerHTML = item.photos.slice(1).map(p => `<img src="${p}" alt="">`).join('');
+  } else {
+    document.getElementById("modalImg").style.display = "none";
+    document.getElementById("modalImgPlaceholder").style.display = "flex";
+    document.getElementById("subPhotos").innerHTML = "";
+  }
+
+  document.getElementById("modalId").textContent = item.id;
+  document.getElementById("modalTitle").textContent = item.name;
+
+  const rows = [
+    ["カラー", item.color],
+    ["サイズ", item.size],
+    ["裏地", item.lining],
+    ["販売価格", item.price ? `¥${Number(item.price).toLocaleString()}` : "お問い合わせください"],
+    ["在庫状況", st.label],
+  ].filter(([,v]) => v);
+
+  document.getElementById("modalInfoRows").innerHTML = rows.map(([l,v]) =>
+    `<div class="infoRow"><span class="infoLabel">${l}</span><span class="infoVal">${v}</span></div>`
+  ).join('');
+
+  if (item.notes) {
+    document.getElementById("modalNotes").style.display = "block";
+    document.getElementById("modalNoteText").textContent = item.notes;
+  } else {
+    document.getElementById("modalNotes").style.display = "none";
+  }
+
+  const igBtn = document.getElementById("instagramBtn");
+  if (item.instagramLink) {
+    igBtn.style.display = "block";
+    igBtn.textContent = "📸 Instagramで詳細を見る";
+    igBtn.onclick = () => window.open(item.instagramLink, "_blank");
+  } else { igBtn.style.display = "none"; }
+
+  const shopBtn = document.getElementById("shopBtn");
+  if (item.shopLink) {
+    shopBtn.style.display = "block";
+    shopBtn.textContent = "🛒 ショップで購入する";
+    shopBtn.onclick = () => window.open(item.shopLink, "_blank");
+  } else { shopBtn.style.display = "none"; }
+
+  document.getElementById("overlay").classList.add("show");
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById("overlay") || e.currentTarget === document.getElementById("closeBtn")) {
+    document.getElementById("overlay").classList.remove("show");
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
